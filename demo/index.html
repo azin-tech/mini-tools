@@ -1,0 +1,555 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>mini-tools demo</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f0f11;
+      --surface: #18181b;
+      --border: #2a2a2e;
+      --accent: #6366f1;
+      --accent-hover: #818cf8;
+      --text: #e4e4e7;
+      --muted: #71717a;
+      --green: #22c55e;
+      --red: #ef4444;
+      --radius: 8px;
+      --font-mono: "JetBrains Mono", "Fira Code", "Cascadia Code", ui-monospace, monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    header h1 { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+    header .badge {
+      font-size: 11px;
+      background: #1e1b4b;
+      color: var(--accent-hover);
+      border: 1px solid #312e81;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-weight: 500;
+    }
+
+    .layout {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+    }
+
+    nav {
+      width: 200px;
+      border-right: 1px solid var(--border);
+      padding: 12px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+
+    .nav-group-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      padding: 8px 8px 4px;
+    }
+
+    nav button {
+      width: 100%;
+      text-align: left;
+      background: none;
+      border: none;
+      color: var(--muted);
+      padding: 7px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.1s, color 0.1s;
+    }
+    nav button:hover { background: var(--surface); color: var(--text); }
+    nav button.active { background: #1e1b4b; color: var(--accent-hover); font-weight: 500; }
+
+    main {
+      flex: 1;
+      padding: 24px 32px;
+      overflow-y: auto;
+      max-width: 800px;
+    }
+
+    .tool { display: none; flex-direction: column; gap: 16px; }
+    .tool.active { display: flex; }
+
+    .tool h2 { font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
+    .tool .desc { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field label { font-size: 12px; font-weight: 500; color: var(--muted); }
+
+    textarea, input, select {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: var(--radius);
+      font-size: 13px;
+      padding: 10px 12px;
+      width: 100%;
+      font-family: var(--font-mono);
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    textarea:focus, input:focus, select:focus { border-color: var(--accent); }
+    textarea { min-height: 100px; }
+
+    select { font-family: inherit; cursor: pointer; }
+
+    .row { display: flex; gap: 12px; }
+    .row .field { flex: 1; }
+
+    button.run {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      padding: 10px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      align-self: flex-start;
+      transition: background 0.15s;
+    }
+    button.run:hover { background: var(--accent-hover); }
+    button.run:active { transform: scale(0.98); }
+
+    .result {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      display: none;
+    }
+    .result.visible { display: block; }
+
+    .result-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .result pre {
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      line-height: 1.6;
+    }
+
+    .badge-valid {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .badge-valid.ok { color: var(--green); }
+    .badge-valid.err { color: var(--red); }
+
+    .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .dot.green { background: var(--green); }
+    .dot.red { background: var(--red); }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .checkbox-row input[type=checkbox] { width: auto; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>mini-tools demo</h1>
+  <span class="badge">@azin-tech/mini-tools</span>
+</header>
+
+<div class="layout">
+  <nav>
+    <div class="nav-group-label">YAML</div>
+    <button data-tool="yaml-validate" class="active">Validate</button>
+    <button data-tool="yaml-format">Format</button>
+    <button data-tool="yaml-to-json">→ JSON</button>
+    <button data-tool="yaml-to-yaml">JSON → YAML</button>
+
+    <div class="nav-group-label" style="margin-top:8px">OpenAPI</div>
+    <button data-tool="openapi-validate">Validate</button>
+
+    <div class="nav-group-label" style="margin-top:8px">Tools</div>
+    <button data-tool="base64">Base64</button>
+    <button data-tool="cron">Cron</button>
+    <button data-tool="robots">Robots.txt</button>
+    <button data-tool="pg">PostgreSQL</button>
+    <button data-tool="uuid">UUID</button>
+  </nav>
+
+  <main>
+
+    <!-- YAML Validate -->
+    <div class="tool active" id="yaml-validate">
+      <div>
+        <h2>YAML Validator</h2>
+        <div class="desc">Check if a YAML string is valid</div>
+      </div>
+      <div class="field">
+        <label>YAML input</label>
+        <textarea id="yv-input">name: Alice
+age: 30
+tags:
+  - admin
+  - user</textarea>
+      </div>
+      <button class="run" onclick="run('yaml-validate')">Validate</button>
+      <div class="result" id="yv-result"></div>
+    </div>
+
+    <!-- YAML Format -->
+    <div class="tool" id="yaml-format">
+      <div>
+        <h2>YAML Formatter</h2>
+        <div class="desc">Pretty-print and normalize YAML</div>
+      </div>
+      <div class="field">
+        <label>YAML input</label>
+        <textarea id="yf-input">name:  Alice
+tags: [admin, user]
+nested: {a: 1, b: 2}</textarea>
+      </div>
+      <div class="field">
+        <label>Indent</label>
+        <select id="yf-indent"><option value="2">2 spaces</option><option value="4">4 spaces</option></select>
+      </div>
+      <button class="run" onclick="run('yaml-format')">Format</button>
+      <div class="result" id="yf-result"></div>
+    </div>
+
+    <!-- YAML → JSON -->
+    <div class="tool" id="yaml-to-json">
+      <div>
+        <h2>YAML → JSON</h2>
+        <div class="desc">Convert YAML to pretty-printed JSON</div>
+      </div>
+      <div class="field">
+        <label>YAML input</label>
+        <textarea id="ytj-input">name: Alice
+scores:
+  - 95
+  - 87
+  - 92</textarea>
+      </div>
+      <button class="run" onclick="run('yaml-to-json')">Convert</button>
+      <div class="result" id="ytj-result"></div>
+    </div>
+
+    <!-- JSON → YAML -->
+    <div class="tool" id="yaml-to-yaml">
+      <div>
+        <h2>JSON → YAML</h2>
+        <div class="desc">Convert JSON to YAML</div>
+      </div>
+      <div class="field">
+        <label>JSON input</label>
+        <textarea id="jty-input">{"name":"Alice","scores":[95,87,92],"active":true}</textarea>
+      </div>
+      <button class="run" onclick="run('yaml-to-yaml')">Convert</button>
+      <div class="result" id="jty-result"></div>
+    </div>
+
+    <!-- OpenAPI Validate -->
+    <div class="tool" id="openapi-validate">
+      <div>
+        <h2>OpenAPI Validator</h2>
+        <div class="desc">Validate an OpenAPI 2.x / 3.x spec (YAML or JSON)</div>
+      </div>
+      <div class="field">
+        <label>Spec (YAML or JSON)</label>
+        <textarea id="ov-input" style="min-height:160px">openapi: "3.0.0"
+info:
+  title: Sample API
+  version: "1.0.0"
+paths:
+  /users:
+    get:
+      summary: List users
+      responses:
+        "200":
+          description: OK</textarea>
+      </div>
+      <button class="run" onclick="run('openapi-validate')">Validate</button>
+      <div class="result" id="ov-result"></div>
+    </div>
+
+    <!-- Base64 -->
+    <div class="tool" id="base64">
+      <div>
+        <h2>Base64 Encode / Decode</h2>
+        <div class="desc">Encode plain text or decode a base64 string</div>
+      </div>
+      <div class="field">
+        <label>Input</label>
+        <textarea id="b64-input" style="min-height:60px">hello world</textarea>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="run" onclick="run('base64-encode')">Encode</button>
+        <button class="run" style="background:#27272a;color:var(--text)" onclick="run('base64-decode')">Decode</button>
+      </div>
+      <div class="result" id="b64-result"></div>
+    </div>
+
+    <!-- Cron -->
+    <div class="tool" id="cron">
+      <div>
+        <h2>Cron Generator</h2>
+        <div class="desc">Generate a cron expression or describe an existing one</div>
+      </div>
+      <div class="field">
+        <label>Preset (leave blank for manual)</label>
+        <select id="cron-preset">
+          <option value="">— manual —</option>
+          <option value="hourly">hourly</option>
+          <option value="daily">daily</option>
+          <option value="weekly">weekly</option>
+          <option value="monthly">monthly</option>
+          <option value="yearly">yearly</option>
+        </select>
+      </div>
+      <div class="row">
+        <div class="field"><label>Hour</label><input id="cron-hour" placeholder="* or 0–23" /></div>
+        <div class="field"><label>Minute</label><input id="cron-minute" placeholder="* or 0–59" /></div>
+        <div class="field"><label>Weekday</label><input id="cron-weekday" placeholder="* or 0–6" /></div>
+      </div>
+      <button class="run" onclick="run('cron-generate')">Generate</button>
+      <hr style="border-color:var(--border);margin:4px 0" />
+      <div class="field">
+        <label>Or describe an existing expression</label>
+        <input id="cron-expr" placeholder="e.g. */15 * * * *" value="0 9 * * 1" />
+      </div>
+      <button class="run" onclick="run('cron-describe')">Describe</button>
+      <div class="result" id="cron-result"></div>
+    </div>
+
+    <!-- Robots.txt -->
+    <div class="tool" id="robots">
+      <div>
+        <h2>Robots.txt Generator</h2>
+        <div class="desc">Generate a robots.txt from JSON rules</div>
+      </div>
+      <div class="field">
+        <label>Rules (JSON array)</label>
+        <textarea id="robots-rules" style="min-height:120px">[
+  {"userAgent": "*", "disallow": ["/admin", "/private"]},
+  {"userAgent": "Googlebot", "allow": ["/"], "crawlDelay": 1}
+]</textarea>
+      </div>
+      <div class="field">
+        <label>Sitemap URL (optional)</label>
+        <input id="robots-sitemap" placeholder="https://example.com/sitemap.xml" />
+      </div>
+      <button class="run" onclick="run('robots-txt')">Generate</button>
+      <div class="result" id="robots-result"></div>
+    </div>
+
+    <!-- PostgreSQL -->
+    <div class="tool" id="pg">
+      <div>
+        <h2>PostgreSQL Connection String</h2>
+        <div class="desc">Build URL, JDBC, and DATABASE_URL formats</div>
+      </div>
+      <div class="row">
+        <div class="field"><label>Host</label><input id="pg-host" value="localhost" /></div>
+        <div class="field"><label>Port</label><input id="pg-port" value="5432" /></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>Database</label><input id="pg-db" value="mydb" /></div>
+        <div class="field"><label>User</label><input id="pg-user" value="postgres" /></div>
+      </div>
+      <div class="field"><label>Password</label><input id="pg-pass" type="password" placeholder="optional" /></div>
+      <label class="checkbox-row">
+        <input type="checkbox" id="pg-ssl" />
+        Enable SSL
+      </label>
+      <button class="run" onclick="run('pg')">Build</button>
+      <div class="result" id="pg-result"></div>
+    </div>
+
+    <!-- UUID -->
+    <div class="tool" id="uuid">
+      <div>
+        <h2>UUID Generator</h2>
+        <div class="desc">Generate v4 UUIDs via crypto.randomUUID()</div>
+      </div>
+      <div class="field">
+        <label>Count</label>
+        <input id="uuid-count" type="number" value="5" min="1" max="50" style="max-width:100px" />
+      </div>
+      <button class="run" onclick="run('uuid')">Generate</button>
+      <div class="result" id="uuid-result"></div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  // Nav switching
+  document.querySelectorAll('nav button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tool').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(btn.dataset.tool).classList.add('active');
+    });
+  });
+
+  async function api(endpoint, body) {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return res.json();
+  }
+
+  function showResult(id, html) {
+    const el = document.getElementById(id);
+    el.classList.add('visible');
+    el.innerHTML = html;
+  }
+
+  function pre(text) {
+    return `<div class="result-label">Output</div><pre>${escHtml(text)}</pre>`;
+  }
+
+  function validBadge(valid) {
+    const cls = valid ? 'ok' : 'err';
+    const dot = `<span class="dot ${valid ? 'green' : 'red'}"></span>`;
+    return `<div class="badge-valid ${cls}">${dot}${valid ? 'Valid' : 'Invalid'}</div>`;
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  async function run(tool) {
+    switch (tool) {
+      case 'yaml-validate': {
+        const d = await api('/api/yaml/validate', { input: document.getElementById('yv-input').value });
+        let html = validBadge(d.valid);
+        if (d.errors?.length) html += `<div class="result-label" style="margin-top:10px">Errors</div><pre>${d.errors.map(escHtml).join('\n')}</pre>`;
+        showResult('yv-result', html);
+        break;
+      }
+      case 'yaml-format': {
+        const d = await api('/api/yaml/format', { input: document.getElementById('yf-input').value, indent: document.getElementById('yf-indent').value });
+        showResult('yf-result', d.error ? `<div style="color:var(--red)">${escHtml(d.error)}</div>` : pre(d.output));
+        break;
+      }
+      case 'yaml-to-json': {
+        const d = await api('/api/yaml/to-json', { input: document.getElementById('ytj-input').value });
+        showResult('ytj-result', d.error ? `<div style="color:var(--red)">${escHtml(d.error)}</div>` : pre(d.output));
+        break;
+      }
+      case 'yaml-to-yaml': {
+        const d = await api('/api/yaml/to-yaml', { input: document.getElementById('jty-input').value });
+        showResult('jty-result', d.error ? `<div style="color:var(--red)">${escHtml(d.error)}</div>` : pre(d.output));
+        break;
+      }
+      case 'openapi-validate': {
+        const d = await api('/api/openapi/validate', { input: document.getElementById('ov-input').value });
+        let html = validBadge(d.valid);
+        if (d.version) html += `<div class="result-label" style="margin-top:10px">Version</div><pre>OpenAPI ${escHtml(d.version)}</pre>`;
+        if (d.errors?.length) html += `<div class="result-label" style="margin-top:10px">Errors</div><pre>${d.errors.map(escHtml).join('\n')}</pre>`;
+        if (d.warnings?.length) html += `<div class="result-label" style="margin-top:10px">Warnings</div><pre>${d.warnings.map(escHtml).join('\n')}</pre>`;
+        showResult('ov-result', html);
+        break;
+      }
+      case 'base64-encode': {
+        const d = await api('/api/base64/encode', { input: document.getElementById('b64-input').value });
+        showResult('b64-result', pre(d.output));
+        break;
+      }
+      case 'base64-decode': {
+        const d = await api('/api/base64/decode', { input: document.getElementById('b64-input').value });
+        showResult('b64-result', d.error ? `<div style="color:var(--red)">${escHtml(d.error)}</div>` : pre(d.output));
+        break;
+      }
+      case 'cron-generate': {
+        const d = await api('/api/cron/generate', {
+          preset: document.getElementById('cron-preset').value,
+          hour: document.getElementById('cron-hour').value,
+          minute: document.getElementById('cron-minute').value,
+          weekday: document.getElementById('cron-weekday').value,
+        });
+        showResult('cron-result', d.error ? `<div style="color:var(--red)">${escHtml(d.error)}</div>` : `<div class="result-label">Expression</div><pre style="font-size:18px;margin-bottom:10px">${escHtml(d.expression)}</pre><div class="result-label">Description</div><pre>${escHtml(d.description)}</pre>`);
+        break;
+      }
+      case 'cron-describe': {
+        const d = await api('/api/cron/describe', { expression: document.getElementById('cron-expr').value });
+        showResult('cron-result', d.error ? `<div style="color:var(--red)">${escHtml(d.error)}</div>` : pre(d.description));
+        break;
+      }
+      case 'robots-txt': {
+        const d = await api('/api/robots-txt', { rules: document.getElementById('robots-rules').value, sitemapUrl: document.getElementById('robots-sitemap').value });
+        showResult('robots-result', d.error ? `<div style="color:var(--red)">${escHtml(d.error)}</div>` : pre(d.output));
+        break;
+      }
+      case 'pg': {
+        const d = await api('/api/pg', {
+          host: document.getElementById('pg-host').value,
+          port: document.getElementById('pg-port').value,
+          database: document.getElementById('pg-db').value,
+          user: document.getElementById('pg-user').value,
+          password: document.getElementById('pg-pass').value,
+          ssl: document.getElementById('pg-ssl').checked.toString(),
+        });
+        showResult('pg-result',
+          `<div class="result-label">URL</div><pre>${escHtml(d.url)}</pre>` +
+          `<div class="result-label" style="margin-top:10px">JDBC</div><pre>${escHtml(d.jdbc)}</pre>` +
+          `<div class="result-label" style="margin-top:10px">ENV</div><pre>${escHtml(d.env)}</pre>`
+        );
+        break;
+      }
+      case 'uuid': {
+        const d = await api('/api/uuid', { count: document.getElementById('uuid-count').value });
+        showResult('uuid-result', `<div class="result-label">UUIDs</div><pre>${d.uuids.map(escHtml).join('\n')}</pre>`);
+        break;
+      }
+    }
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "name": "mini-tools-demo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node server.mjs"
+  },
+  "dependencies": {
+    "@azin-tech/mini-tools": "^0.1.2"
+  }
+}
