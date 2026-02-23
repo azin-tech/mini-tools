@@ -13,14 +13,15 @@ export default defineConfig([
     target: "node18",
     external: Object.keys(pkg.dependencies),
   },
-  // CLI — CJS for universal Node + Bun compatibility (avoids ESM/CJS interop issues)
+  // CLI — ESM, external deps (Node 18 handles CJS/ESM interop natively)
   {
     entry: { cli: "cli/index.ts" },
     outDir: "dist",
-    format: ["cjs"],
+    format: ["esm"],
     dts: false,
     sourcemap: false,
     target: "node18",
+    external: Object.keys(pkg.dependencies),
     banner: { js: "#!/usr/bin/env node" },
     define: { __CLI_VERSION__: JSON.stringify(pkg.version) },
   },
