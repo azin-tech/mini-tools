@@ -2,10 +2,23 @@ import { Command } from "commander";
 import pkg from "../package.json" with { type: "json" };
 import { base64Decode, base64Encode } from "../src/base64/index.js";
 import { describeCron, generateCron } from "../src/cron-generator/index.js";
+import { dnsLookup, lookupCname, lookupMx } from "../src/dns-lookup/index.js";
+import type { DnsRecordType } from "../src/dns-lookup/index.js";
+import { generateDockerfile } from "../src/dockerfile-generator/index.js";
+import type { DockerfileRuntime } from "../src/dockerfile-generator/index.js";
+import { generateHash } from "../src/hash-generator/index.js";
+import type { HashAlgorithm } from "../src/hash-generator/index.js";
+import { formatJson } from "../src/json/formatter/index.js";
+import { validateJson } from "../src/json/validator/index.js";
+import { decodeJwt } from "../src/jwt-decoder/index.js";
+import { buildMysqlConnectionString } from "../src/mysql-connection-string/index.js";
 import { validateOpenApi } from "../src/openapi-validator/index.js";
 import { buildPgConnectionString } from "../src/postgresql-connection-string/index.js";
+import { testRegex } from "../src/regex-tester/index.js";
 import type { RobotsRule } from "../src/robots-txt-generator/index.js";
 import { generateRobotsTxt } from "../src/robots-txt-generator/index.js";
+import { convertTimestamp, nowTimestamp } from "../src/timestamp-converter/index.js";
+import { calculateUptime } from "../src/uptime-calculator/index.js";
 import { generateUuid } from "../src/uuid-generator/index.js";
 import { formatYaml } from "../src/yaml/formatter/index.js";
 import { yamlToJson } from "../src/yaml/to-json/index.js";
@@ -55,7 +68,8 @@ const program = new Command();
 program
   .name("mini-tools")
   .description(
-    "Developer mini-tools: YAML, OpenAPI, Base64, Cron, Robots.txt, PostgreSQL, UUID\n\n" +
+    "Developer mini-tools: YAML, OpenAPI, JSON, Base64, Cron, Regex, Robots.txt,\n" +
+      "PostgreSQL, MySQL, UUID, Uptime, Dockerfile, JWT, Hash, Timestamp, DNS\n\n" +
       "All commands accept --json for machine-readable output.\n" +
       "Text-input commands accept - as input to read from stdin.\n" +
       "Exit code 1 on validation failures (safe for CI pipelines)."
@@ -105,18 +119,6 @@ yaml
   .description("Format YAML to consistent block style. Preserves multi-document (---) input.")
   .option("--indent <n>", "indentation spaces: 2 or 4", "2")
   .option("--json", "output JSON")
-  .addHelpText(
-    "after",
-    `
-Examples:
-  mini-tools yaml format "person: {name: ada, age: 30}"
-  mini-tools yaml format "list: [1,2,3]" --indent 4
-  cat messy.yml | mini-tools yaml format -
-
-JSON output schema:
-  { "output": "person:\\n  name: ada\\n  age: 30\\n" }
-  { "output": "", "error": "reason the input could not be parsed" }`
-  )
   .action(async (inputArg: string | undefined, opts: { indent: string; json?: boolean }) => {
     const input = await requireInput(inputArg, "yaml format");
     const indent = Number(opts.indent) === 4 ? 4 : 2;
@@ -136,18 +138,6 @@ yaml
   .command("to-json [input]")
   .description("Convert YAML to pretty-printed JSON.")
   .option("--json", "wrap output in a JSON envelope { output, error? }")
-  .addHelpText(
-    "after",
-    `
-Examples:
-  mini-tools yaml to-json "name: azin\\nversion: 1"
-  cat data.yml | mini-tools yaml to-json -
-
-Output (plain): pretty-printed JSON string printed directly
-Output (--json envelope):
-  { "output": "{\\n  \\"name\\": \\"azin\\"\\n}" }
-  { "output": "", "error": "reason" }`
-  )
   .action(async (inputArg: string | undefined, opts: { json?: boolean }) => {
     const input = await requireInput(inputArg, "yaml to-json");
     const result = yamlToJson(input);
@@ -166,18 +156,6 @@ yaml
   .command("to-yaml [input]")
   .description("Convert JSON to YAML.")
   .option("--json", "wrap output in a JSON envelope { output, error? }")
-  .addHelpText(
-    "after",
-    `
-Examples:
-  mini-tools yaml to-yaml '{"name":"azin","version":1}'
-  cat data.json | mini-tools yaml to-yaml -
-
-Output (plain): YAML string printed directly
-Output (--json envelope):
-  { "output": "name: azin\\nversion: 1\\n" }
-  { "output": "", "error": "reason" }`
-  )
   .action(async (inputArg: string | undefined, opts: { json?: boolean }) => {
     const input = await requireInput(inputArg, "yaml to-yaml");
     const result = jsonToYaml(input);
@@ -202,24 +180,6 @@ openapi
     "Validate an OpenAPI 2.0 (Swagger) or 3.x spec. Accepts YAML or JSON, auto-detected."
   )
   .option("--json", "output JSON")
-  .addHelpText(
-    "after",
-    `
-Examples:
-  mini-tools openapi validate ./openapi.yaml
-  cat openapi.json | mini-tools openapi validate -
-  mini-tools openapi validate '{"openapi":"3.0.0","info":{"title":"X","version":"1"},"paths":{}}'
-
-JSON output schema:
-  {
-    "valid": true,
-    "version": "3.0.0",        -- "2.0" for Swagger, "3.0.x"/"3.1.x" for OAS
-    "errors": [],
-    "warnings": []
-  }
-
-Exit codes: 0 = valid, 1 = invalid`
-  )
   .action(async (inputArg: string | undefined, opts: { json?: boolean }) => {
     const input = await requireInput(inputArg, "openapi validate");
     const result = await validateOpenApi(input);
@@ -240,6 +200,81 @@ Exit codes: 0 = valid, 1 = invalid`
     if (!result.valid) process.exit(1);
   });
 
+// ─── json ────────────────────────────────────────────────────────────────────
+
+const jsonCmd = program.command("json").description("JSON utilities (validate, format)");
+
+jsonCmd
+  .command("validate [input]")
+  .description("Validate JSON syntax.")
+  .option("--json", "output JSON")
+  .addHelpText(
+    "after",
+    `
+Examples:
+  mini-tools json validate '{"a":1}'
+  echo '{"key":"value"}' | mini-tools json validate -
+
+JSON output schema:
+  { "valid": true,  "errors": [] }
+  { "valid": false, "errors": ["Unexpected token } in JSON at position 7"] }
+
+Exit codes: 0 = valid, 1 = invalid`
+  )
+  .action(async (inputArg: string | undefined, opts: { json?: boolean }) => {
+    const input = await requireInput(inputArg, "json validate");
+    const result = validateJson(input);
+    if (opts.json) {
+      output(result, true);
+    } else {
+      if (result.valid) {
+        process.stdout.write("Valid JSON\n");
+      } else {
+        process.stderr.write("Invalid JSON:\n");
+        for (const e of result.errors) process.stderr.write(`  ${e}\n`);
+      }
+    }
+    if (!result.valid) process.exit(1);
+  });
+
+jsonCmd
+  .command("format [input]")
+  .description("Pretty-print and format JSON.")
+  .option("--indent <n>", "indentation spaces: 2 or 4", "2")
+  .option("--sort-keys", "sort object keys alphabetically")
+  .option("--json", "wrap output in JSON envelope")
+  .addHelpText(
+    "after",
+    `
+Examples:
+  mini-tools json format '{"b":2,"a":1}'
+  mini-tools json format '{"b":2,"a":1}' --sort-keys
+  cat data.json | mini-tools json format - --indent 4
+
+JSON output schema:
+  { "output": "{\\"a\\": 1,\\"b\\": 2}" }
+  { "output": "", "error": "Invalid JSON: ..." }`
+  )
+  .action(
+    async (
+      inputArg: string | undefined,
+      opts: { indent: string; sortKeys?: boolean; json?: boolean }
+    ) => {
+      const input = await requireInput(inputArg, "json format");
+      const indent = Number(opts.indent) === 4 ? 4 : 2;
+      const result = formatJson(input, { indent, sortKeys: opts.sortKeys });
+      if (opts.json) {
+        output(result, true);
+      } else if (result.error) {
+        process.stderr.write(`Error: ${result.error}\n`);
+        process.exit(1);
+      } else {
+        process.stdout.write(`${result.output}\n`);
+      }
+      if (result.error) process.exit(1);
+    }
+  );
+
 // ─── base64 ──────────────────────────────────────────────────────────────────
 
 const b64 = program
@@ -250,16 +285,6 @@ b64
   .command("encode <input>")
   .description("Base64-encode a UTF-8 string.")
   .option("--json", "output JSON")
-  .addHelpText(
-    "after",
-    `
-Examples:
-  mini-tools base64 encode "hello world"
-  mini-tools base64 encode "hello world" --json
-
-Output (plain): aGVsbG8gd29ybGQ=
-JSON output schema: { "output": "aGVsbG8gd29ybGQ=" }`
-  )
   .action((inputArg: string, opts: { json?: boolean }) => {
     const result = base64Encode(inputArg);
     if (opts.json) {
@@ -273,20 +298,6 @@ b64
   .command("decode <input>")
   .description("Base64-decode a string back to UTF-8. Returns an error if input is invalid.")
   .option("--json", "output JSON")
-  .addHelpText(
-    "after",
-    `
-Examples:
-  mini-tools base64 decode "aGVsbG8gd29ybGQ="
-  mini-tools base64 decode "aGVsbG8gd29ybGQ=" --json
-
-Output (plain): hello world
-JSON output schema:
-  { "output": "hello world" }
-  { "output": "", "error": "Invalid base64 string" }
-
-Exit codes: 0 = success, 1 = invalid base64 input`
-  )
   .action((inputArg: string, opts: { json?: boolean }) => {
     const result = base64Decode(inputArg);
     if (opts.json) {
@@ -314,25 +325,6 @@ cron
   .option("--weekday <w>", "day-of-week (0=Sun … 6=Sat, or *)")
   .option("--preset <p>", "named preset: hourly | daily | weekly | monthly | yearly")
   .option("--json", "output JSON")
-  .addHelpText(
-    "after",
-    `
-Presets:
-  hourly   →  0 * * * *   (every hour on the hour)
-  daily    →  0 0 * * *   (midnight every day)
-  weekly   →  0 0 * * 0   (midnight every Sunday)
-  monthly  →  0 0 1 * *   (midnight on the 1st)
-  yearly   →  0 0 1 1 *   (midnight on Jan 1st)
-
-Examples:
-  mini-tools cron generate --preset daily
-  mini-tools cron generate --hour 9 --minute 30 --weekday 1
-  mini-tools cron generate --minute "*/15"
-
-JSON output schema:
-  { "expression": "0 9 * * 1", "description": "At 09:00 AM, only on Monday" }
-  { "expression": "bad * *",   "description": "", "error": "reason" }`
-  )
   .action(
     (opts: {
       minute?: string;
@@ -363,20 +355,6 @@ cron
   .command("describe <expression>")
   .description("Explain a cron expression in plain English.")
   .option("--json", "output JSON")
-  .addHelpText(
-    "after",
-    `
-Examples:
-  mini-tools cron describe "*/15 * * * *"
-  mini-tools cron describe "0 9 * * 1-5"
-  mini-tools cron describe "0 0 1 * *" --json
-
-JSON output schema:
-  { "description": "Every 15 minutes" }
-  { "description": "", "error": "reason the expression is invalid" }
-
-Exit codes: 0 = success, 1 = invalid expression`
-  )
   .action((expression: string, opts: { json?: boolean }) => {
     const result = describeCron(expression);
     if (opts.json) {
@@ -390,6 +368,44 @@ Exit codes: 0 = success, 1 = invalid expression`
     if (result.error) process.exit(1);
   });
 
+// ─── regex ────────────────────────────────────────────────────────────────────
+
+program
+  .command("regex <pattern> <input>")
+  .description("Test a regular expression against an input string.")
+  .option("--flags <flags>", "regex flags (e.g. i, g, m, s)", "")
+  .option("--json", "output JSON")
+  .addHelpText(
+    "after",
+    `
+Examples:
+  mini-tools regex "\\d+" "abc 123 def 456"
+  mini-tools regex "\\b\\w+@\\w+\\.\\w+\\b" "email: hi@example.com" --flags gi
+  mini-tools regex "(?<year>\\d{4})-(?<month>\\d{2})" "date: 2024-01" --json
+
+JSON output schema:
+  { "valid": true, "matchCount": 2, "matches": [{ "match": "123", "index": 4, "groups": null }] }
+  { "valid": false, "matchCount": 0, "matches": [], "error": "Invalid regex: ..." }
+
+Exit codes: 0 = success, 1 = invalid regex pattern`
+  )
+  .action((pattern: string, inputStr: string, opts: { flags: string; json?: boolean }) => {
+    const result = testRegex(pattern, opts.flags, inputStr);
+    if (opts.json) {
+      output(result, true);
+    } else if (result.error) {
+      process.stderr.write(`Error: ${result.error}\n`);
+      process.exit(1);
+    } else {
+      process.stdout.write(`${result.matchCount} match(es)\n`);
+      for (const m of result.matches) {
+        process.stdout.write(`  [${m.index}] "${m.match}"\n`);
+        if (m.groups) process.stdout.write(`    groups: ${JSON.stringify(m.groups)}\n`);
+      }
+    }
+    if (!result.valid) process.exit(1);
+  });
+
 // ─── robots-txt ───────────────────────────────────────────────────────────────
 
 program
@@ -398,30 +414,6 @@ program
   .option("--file <path>", "read rules from a JSON file instead of argument/stdin")
   .option("--sitemap <url>", "append a Sitemap: directive at the end")
   .option("--json", "output JSON")
-  .addHelpText(
-    "after",
-    `
-Input format — JSON array of rule objects:
-  [
-    { "userAgent": "*",         "disallow": ["/admin", "/private"] },
-    { "userAgent": "Googlebot", "allow": ["/"], "crawlDelay": 1 }
-  ]
-
-Fields per rule:
-  userAgent   string    required  "*" or a bot name e.g. "Googlebot"
-  allow       string[]  optional  paths to allow (must start with /)
-  disallow    string[]  optional  paths to disallow (must start with /)
-  crawlDelay  number    optional  seconds between requests
-
-Examples:
-  mini-tools robots-txt '[{"userAgent":"*","disallow":["/admin"]}]'
-  mini-tools robots-txt '[{"userAgent":"*","disallow":["/admin"]}]' --sitemap https://example.com/sitemap.xml
-  cat rules.json | mini-tools robots-txt -
-  mini-tools robots-txt --file rules.json --sitemap https://example.com/sitemap.xml
-
-JSON output schema:
-  { "output": "User-agent: *\\nDisallow: /admin\\n" }`
-  )
   .action(
     async (
       inputArg: string | undefined,
@@ -436,7 +428,7 @@ JSON output schema:
         } catch {
           process.stderr.write(`Error: cannot read file "${opts.file}"\n`);
           process.exit(1);
-          return; // unreachable — tells TypeScript rulesJson is assigned
+          return;
         }
       } else if (inputArg === "-") {
         rulesJson = await readStdin();
@@ -447,7 +439,7 @@ JSON output schema:
           "Error: provide JSON rules as argument, use - for stdin, or use --file <path>\n"
         );
         process.exit(1);
-        return; // unreachable — keeps TypeScript control flow sound
+        return;
       }
 
       let rules: RobotsRule[];
@@ -456,7 +448,7 @@ JSON output schema:
       } catch {
         process.stderr.write("Error: invalid JSON for robots rules\n");
         process.exit(1);
-        return; // unreachable
+        return;
       }
 
       const result = generateRobotsTxt(rules, opts.sitemap);
@@ -482,26 +474,6 @@ program
   .option("--sslmode <mode>", "explicit SSL mode: disable | require | verify-ca | verify-full")
   .option("--app-name <name>", "application name (application_name / ApplicationName)")
   .option("--json", "output JSON")
-  .addHelpText(
-    "after",
-    `
-Examples:
-  mini-tools pg --host localhost --db mydb --user admin
-  mini-tools pg --host db.example.com --db prod --user api --password "s3cr3t" --ssl
-  mini-tools pg --host localhost --db mydb --user admin --json
-
-JSON output schema:
-  {
-    "url":  "postgresql://admin:s3cr3t@localhost:5432/mydb?sslmode=require",
-    "jdbc": "jdbc:postgresql://localhost:5432/mydb?user=admin&password=s3cr3t&sslmode=require",
-    "env":  "DATABASE_URL=\\"postgresql://admin:s3cr3t@localhost:5432/mydb?sslmode=require\\""
-  }
-
-Notes:
-  - Passwords with special characters (@, /, ?, etc.) are automatically URL-encoded
-  - --ssl is shorthand for --sslmode require
-  - --sslmode overrides --ssl if both are provided`
-  )
   .action(
     (opts: {
       host: string;
@@ -532,6 +504,59 @@ Notes:
     }
   );
 
+// ─── mysql ────────────────────────────────────────────────────────────────────
+
+program
+  .command("mysql")
+  .description("Build a MySQL connection string in URL, JDBC, and DATABASE_URL= formats.")
+  .requiredOption("--host <host>", "database host")
+  .requiredOption("--db <database>", "database name")
+  .requiredOption("--user <user>", "database user")
+  .option("--port <port>", "port (default: 3306)")
+  .option("--password <password>", "database password (special chars are URL-encoded)")
+  .option("--ssl", "enable SSL")
+  .option("--json", "output JSON")
+  .addHelpText(
+    "after",
+    `
+Examples:
+  mini-tools mysql --host localhost --db mydb --user root
+  mini-tools mysql --host db.example.com --db prod --user api --password "s3cr3t" --ssl
+  mini-tools mysql --host localhost --db mydb --user root --json
+
+JSON output schema:
+  {
+    "url":  "mysql://root:s3cr3t@localhost:3306/mydb?ssl=true",
+    "jdbc": "jdbc:mysql://localhost:3306/mydb?user=root&password=s3cr3t&useSSL=true",
+    "env":  "DATABASE_URL=\\"mysql://root:s3cr3t@localhost:3306/mydb?ssl=true\\""
+  }`
+  )
+  .action(
+    (opts: {
+      host: string;
+      db: string;
+      user: string;
+      port?: string;
+      password?: string;
+      ssl?: boolean;
+      json?: boolean;
+    }) => {
+      const result = buildMysqlConnectionString({
+        host: opts.host,
+        database: opts.db,
+        user: opts.user,
+        port: opts.port ? Number(opts.port) : undefined,
+        password: opts.password,
+        ssl: opts.ssl,
+      });
+      if (opts.json) {
+        output(result, true);
+      } else {
+        process.stdout.write(`URL:  ${result.url}\nJDBC: ${result.jdbc}\n${result.env}\n`);
+      }
+    }
+  );
+
 // ─── uuid ─────────────────────────────────────────────────────────────────────
 
 program
@@ -539,25 +564,333 @@ program
   .description("Generate one or more random UUID v4 values.")
   .option("--count <n>", "number of UUIDs to generate (minimum 1)", "1")
   .option("--json", "output JSON")
-  .addHelpText(
-    "after",
-    `
-Examples:
-  mini-tools uuid
-  mini-tools uuid --count 5
-  mini-tools uuid --count 10 --json
-
-Output (plain): one UUID per line
-JSON output schema: { "uuids": ["550e8400-...", "..."] }
-
-UUIDs are v4 (random) generated via crypto.randomUUID().`
-  )
   .action((opts: { count: string; json?: boolean }) => {
     const result = generateUuid({ count: Number(opts.count) });
     if (opts.json) {
       output(result, true);
     } else {
       for (const u of result.uuids) process.stdout.write(`${u}\n`);
+    }
+  });
+
+// ─── uptime ───────────────────────────────────────────────────────────────────
+
+program
+  .command("uptime <percentage>")
+  .description(
+    "Calculate allowed downtime for a given uptime percentage (e.g. 99.9 for three nines)."
+  )
+  .option("--json", "output JSON")
+  .addHelpText(
+    "after",
+    `
+Examples:
+  mini-tools uptime 99.9
+  mini-tools uptime 99.99 --json
+
+JSON output schema:
+  {
+    "percentage": 99.9,
+    "maxDowntimePerDay": "1m 26s",
+    "maxDowntimePerWeek": "10m 4s",
+    "maxDowntimePerMonth": "43m 28s",
+    "maxDowntimePerYear": "8h 45m 56s"
+  }
+
+Exit codes: 0 = success, 1 = invalid percentage`
+  )
+  .action((percentageStr: string, opts: { json?: boolean }) => {
+    const result = calculateUptime(Number(percentageStr));
+    if ("error" in result) {
+      process.stderr.write(`Error: ${result.error}\n`);
+      process.exit(1);
+    }
+    if (opts.json) {
+      output(result, true);
+    } else {
+      process.stdout.write(
+        `${result.percentage}% uptime\n` +
+          `Per day:   ${result.maxDowntimePerDay}\n` +
+          `Per week:  ${result.maxDowntimePerWeek}\n` +
+          `Per month: ${result.maxDowntimePerMonth}\n` +
+          `Per year:  ${result.maxDowntimePerYear}\n`
+      );
+    }
+  });
+
+// ─── dockerfile ───────────────────────────────────────────────────────────────
+
+program
+  .command("dockerfile")
+  .description("Generate a production-ready Dockerfile.")
+  .requiredOption(
+    "--runtime <runtime>",
+    "runtime: node | python | go | rust | java | static"
+  )
+  .option("--version <version>", "runtime version (e.g. 20, 3.11, 1.22)")
+  .option("--port <port>", "exposed port (default: 3000)")
+  .option("--workdir <dir>", "working directory (default: /app)")
+  .option("--install <cmd>", "install command (e.g. 'npm install')")
+  .option("--build <cmd>", "build command (e.g. 'npm run build')")
+  .option("--start <cmd>", "start command (e.g. 'node dist/index.js')")
+  .option("--json", "output JSON")
+  .addHelpText(
+    "after",
+    `
+Examples:
+  mini-tools dockerfile --runtime node
+  mini-tools dockerfile --runtime node --version 20 --port 8080 --build "npm run build" --start "node dist/index.js"
+  mini-tools dockerfile --runtime python --version 3.11 --install "pip install -r requirements.txt"
+  mini-tools dockerfile --runtime go --json`
+  )
+  .action(
+    (opts: {
+      runtime: string;
+      version?: string;
+      port?: string;
+      workdir?: string;
+      install?: string;
+      build?: string;
+      start?: string;
+      json?: boolean;
+    }) => {
+      const result = generateDockerfile({
+        runtime: opts.runtime as DockerfileRuntime,
+        version: opts.version,
+        port: opts.port ? Number(opts.port) : undefined,
+        workdir: opts.workdir,
+        installCmd: opts.install,
+        buildCmd: opts.build,
+        startCmd: opts.start,
+      });
+      if (opts.json) {
+        output(result, true);
+      } else {
+        process.stdout.write(`${result.output}\n`);
+      }
+    }
+  );
+
+// ─── jwt ──────────────────────────────────────────────────────────────────────
+
+const jwtCmd = program.command("jwt").description("JSON Web Token utilities.");
+
+jwtCmd
+  .command("decode <token>")
+  .description(
+    "Decode a JWT header and payload. Does NOT verify the signature."
+  )
+  .option("--json", "output JSON")
+  .addHelpText(
+    "after",
+    `
+Examples:
+  mini-tools jwt decode "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0In0.sig"
+  mini-tools jwt decode "$TOKEN" --json
+
+JSON output schema:
+  {
+    "header":    { "alg": "HS256", "typ": "JWT" },
+    "payload":   { "sub": "1234", "iat": 1516239022 },
+    "signature": "SflKxw...",
+    "isExpired": false,
+    "expiresAt": "2024-01-20T10:30:00.000Z"
+  }
+
+Note: signature is NOT verified. This only decodes the base64url-encoded parts.`
+  )
+  .action((token: string, opts: { json?: boolean }) => {
+    const result = decodeJwt(token);
+    if ("error" in result) {
+      process.stderr.write(`Error: ${result.error}\n`);
+      process.exit(1);
+    }
+    if (opts.json) {
+      output(result, true);
+    } else {
+      process.stdout.write(`Header:\n${JSON.stringify(result.header, null, 2)}\n`);
+      process.stdout.write(`\nPayload:\n${JSON.stringify(result.payload, null, 2)}\n`);
+      if (result.expiresAt) {
+        const expired = result.isExpired ? " (EXPIRED)" : "";
+        process.stdout.write(`\nExpires: ${result.expiresAt}${expired}\n`);
+      }
+    }
+  });
+
+// ─── hash ─────────────────────────────────────────────────────────────────────
+
+program
+  .command("hash <algorithm> <input>")
+  .description("Generate a cryptographic hash. Algorithms: md5 | sha1 | sha256 | sha512.")
+  .option("--json", "output JSON")
+  .addHelpText(
+    "after",
+    `
+Examples:
+  mini-tools hash sha256 "hello world"
+  mini-tools hash md5 "hello world"
+  mini-tools hash sha512 "password123" --json
+
+JSON output schema:
+  { "hash": "b94d27b9...", "algorithm": "sha256" }
+
+Exit codes: 0 = success, 1 = unsupported algorithm`
+  )
+  .action((algorithm: string, inputStr: string, opts: { json?: boolean }) => {
+    const result = generateHash(inputStr, algorithm as HashAlgorithm);
+    if ("error" in result) {
+      process.stderr.write(`Error: ${result.error}\n`);
+      process.exit(1);
+    }
+    if (opts.json) {
+      output(result, true);
+    } else {
+      process.stdout.write(`${result.hash}\n`);
+    }
+  });
+
+// ─── timestamp ────────────────────────────────────────────────────────────────
+
+program
+  .command("timestamp [value]")
+  .description(
+    "Convert a timestamp. Accepts Unix seconds, Unix ms, or ISO string. Omit value for current time."
+  )
+  .option("--json", "output JSON")
+  .addHelpText(
+    "after",
+    `
+Examples:
+  mini-tools timestamp
+  mini-tools timestamp 1705315800
+  mini-tools timestamp 1705315800000
+  mini-tools timestamp "2024-01-15T10:30:00Z"
+  mini-tools timestamp 1705315800 --json
+
+JSON output schema:
+  {
+    "unix":     1705315800,
+    "unixMs":   1705315800000,
+    "iso":      "2024-01-15T10:30:00.000Z",
+    "utc":      "Mon, 15 Jan 2024 10:30:00 GMT",
+    "local":    "1/15/2024, 10:30:00 AM",
+    "relative": "3 days ago"
+  }`
+  )
+  .action((value: string | undefined, opts: { json?: boolean }) => {
+    const result = value ? convertTimestamp(value) : nowTimestamp();
+    if ("error" in result) {
+      process.stderr.write(`Error: ${result.error}\n`);
+      process.exit(1);
+    }
+    if (opts.json) {
+      output(result, true);
+    } else {
+      process.stdout.write(
+        `Unix:     ${result.unix}\n` +
+          `Unix ms:  ${result.unixMs}\n` +
+          `ISO:      ${result.iso}\n` +
+          `UTC:      ${result.utc}\n` +
+          `Relative: ${result.relative}\n`
+      );
+    }
+  });
+
+// ─── dns ──────────────────────────────────────────────────────────────────────
+
+const dns = program.command("dns").description("DNS lookup utilities.");
+
+dns
+  .command("cname <hostname>")
+  .description("Look up the CNAME record for a hostname.")
+  .option("--json", "output JSON")
+  .addHelpText(
+    "after",
+    `
+Examples:
+  mini-tools dns cname www.github.com
+  mini-tools dns cname www.example.com --json
+
+JSON output schema:
+  { "hostname": "www.github.com", "cname": "github.com" }
+  { "hostname": "example.com",    "cname": null, "error": "ENODATA" }
+
+Exit codes: 0 = success, 1 = DNS error`
+  )
+  .action(async (hostname: string, opts: { json?: boolean }) => {
+    const result = await lookupCname(hostname);
+    if (opts.json) {
+      output(result, true);
+    } else if (result.error && !result.cname) {
+      process.stderr.write(`Error: ${result.error}\n`);
+      process.exit(1);
+    } else {
+      process.stdout.write(result.cname ? `${result.cname}\n` : "No CNAME record found\n");
+    }
+  });
+
+dns
+  .command("mx <hostname>")
+  .description("Look up MX (mail exchange) records for a hostname, sorted by priority.")
+  .option("--json", "output JSON")
+  .addHelpText(
+    "after",
+    `
+Examples:
+  mini-tools dns mx gmail.com
+  mini-tools dns mx example.com --json
+
+JSON output schema:
+  { "hostname": "gmail.com", "records": [{ "priority": 5, "exchange": "gmail-smtp-in.l.google.com" }] }
+
+Records are sorted by priority ascending (lower = higher priority).`
+  )
+  .action(async (hostname: string, opts: { json?: boolean }) => {
+    const result = await lookupMx(hostname);
+    if (opts.json) {
+      output(result, true);
+    } else if (result.error && result.records.length === 0) {
+      process.stderr.write(`Error: ${result.error}\n`);
+      process.exit(1);
+    } else if (result.records.length === 0) {
+      process.stdout.write("No MX records found\n");
+    } else {
+      for (const r of result.records) {
+        process.stdout.write(`${r.priority} ${r.exchange}\n`);
+      }
+    }
+  });
+
+dns
+  .command("lookup <hostname>")
+  .description("Look up any DNS record type for a hostname.")
+  .option("--type <type>", "record type: A | AAAA | TXT | NS | CNAME | MX", "A")
+  .option("--json", "output JSON")
+  .addHelpText(
+    "after",
+    `
+Examples:
+  mini-tools dns lookup google.com
+  mini-tools dns lookup google.com --type TXT
+  mini-tools dns lookup google.com --type MX --json
+  mini-tools dns lookup github.com --type NS
+
+JSON output schema:
+  { "hostname": "google.com", "type": "A", "records": ["142.250.80.46"] }
+
+Exit codes: 0 = success, 1 = DNS error`
+  )
+  .action(async (hostname: string, opts: { type: string; json?: boolean }) => {
+    const result = await dnsLookup(hostname, opts.type as DnsRecordType);
+    if (opts.json) {
+      output(result, true);
+    } else if (result.error && result.records.length === 0) {
+      process.stderr.write(`Error: ${result.error}\n`);
+      process.exit(1);
+    } else if (result.records.length === 0) {
+      process.stdout.write(`No ${opts.type} records found\n`);
+    } else {
+      for (const r of result.records) process.stdout.write(`${r}\n`);
     }
   });
 

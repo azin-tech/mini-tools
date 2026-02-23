@@ -63,6 +63,7 @@
       flex-direction: column;
       gap: 2px;
       flex-shrink: 0;
+      overflow-y: auto;
     }
 
     .nav-group-label {
@@ -210,12 +211,32 @@
     <div class="nav-group-label" style="margin-top:8px">OpenAPI</div>
     <button data-tool="openapi-validate">Validate</button>
 
+    <div class="nav-group-label" style="margin-top:8px">JSON</div>
+    <button data-tool="json-validate">Validate</button>
+    <button data-tool="json-format">Format</button>
+
     <div class="nav-group-label" style="margin-top:8px">Tools</div>
     <button data-tool="base64">Base64</button>
     <button data-tool="cron">Cron</button>
+    <button data-tool="regex">Regex</button>
     <button data-tool="robots">Robots.txt</button>
-    <button data-tool="pg">PostgreSQL</button>
     <button data-tool="uuid">UUID</button>
+    <button data-tool="uptime">Uptime</button>
+    <button data-tool="dockerfile">Dockerfile</button>
+    <button data-tool="timestamp">Timestamp</button>
+
+    <div class="nav-group-label" style="margin-top:8px">Database</div>
+    <button data-tool="pg">PostgreSQL</button>
+    <button data-tool="mysql">MySQL</button>
+
+    <div class="nav-group-label" style="margin-top:8px">Security</div>
+    <button data-tool="hash">Hash</button>
+    <button data-tool="jwt">JWT Decoder</button>
+
+    <div class="nav-group-label" style="margin-top:8px">DNS</div>
+    <button data-tool="dns-cname">CNAME</button>
+    <button data-tool="dns-mx">MX Records</button>
+    <button data-tool="dns-lookup">Lookup</button>
   </nav>
 
   <main>
@@ -314,6 +335,46 @@ paths:
       <div class="result" id="ov-result"></div>
     </div>
 
+    <!-- JSON Validate -->
+    <div class="tool" id="json-validate">
+      <div>
+        <h2>JSON Validator</h2>
+        <div class="desc">Check if a JSON string is valid</div>
+      </div>
+      <div class="field">
+        <label>JSON input</label>
+        <textarea id="jv-input">{"name":"Alice","age":30,"tags":["admin","user"]}</textarea>
+      </div>
+      <button class="run" onclick="run('json-validate')">Validate</button>
+      <div class="result" id="jv-result"></div>
+    </div>
+
+    <!-- JSON Format -->
+    <div class="tool" id="json-format">
+      <div>
+        <h2>JSON Formatter</h2>
+        <div class="desc">Pretty-print and format JSON</div>
+      </div>
+      <div class="field">
+        <label>JSON input</label>
+        <textarea id="jf-input">{"name":"Alice","scores":[95,87,92],"active":true,"meta":{"z":3,"a":1}}</textarea>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Indent</label>
+          <select id="jf-indent"><option value="2">2 spaces</option><option value="4">4 spaces</option></select>
+        </div>
+        <div class="field" style="justify-content:flex-end;padding-top:20px">
+          <label class="checkbox-row">
+            <input type="checkbox" id="jf-sort-keys" />
+            Sort keys alphabetically
+          </label>
+        </div>
+      </div>
+      <button class="run" onclick="run('json-format')">Format</button>
+      <div class="result" id="jf-result"></div>
+    </div>
+
     <!-- Base64 -->
     <div class="tool" id="base64">
       <div>
@@ -363,6 +424,30 @@ paths:
       <div class="result" id="cron-result"></div>
     </div>
 
+    <!-- Regex -->
+    <div class="tool" id="regex">
+      <div>
+        <h2>Regex Tester</h2>
+        <div class="desc">Test a regular expression against input text</div>
+      </div>
+      <div class="row">
+        <div class="field" style="flex:2">
+          <label>Pattern</label>
+          <input id="regex-pattern" value="\b\w+@\w+\.\w+\b" />
+        </div>
+        <div class="field" style="flex:0.6">
+          <label>Flags</label>
+          <input id="regex-flags" value="gi" placeholder="gi" />
+        </div>
+      </div>
+      <div class="field">
+        <label>Test input</label>
+        <textarea id="regex-input" style="min-height:60px">Email me at hello@example.com or support@azin.run for help.</textarea>
+      </div>
+      <button class="run" onclick="run('regex')">Test</button>
+      <div class="result" id="regex-result"></div>
+    </div>
+
     <!-- Robots.txt -->
     <div class="tool" id="robots">
       <div>
@@ -382,6 +467,84 @@ paths:
       </div>
       <button class="run" onclick="run('robots-txt')">Generate</button>
       <div class="result" id="robots-result"></div>
+    </div>
+
+    <!-- UUID -->
+    <div class="tool" id="uuid">
+      <div>
+        <h2>UUID Generator</h2>
+        <div class="desc">Generate v4 UUIDs via crypto.randomUUID()</div>
+      </div>
+      <div class="field">
+        <label>Count</label>
+        <input id="uuid-count" type="number" value="5" min="1" max="50" style="max-width:100px" />
+      </div>
+      <button class="run" onclick="run('uuid')">Generate</button>
+      <div class="result" id="uuid-result"></div>
+    </div>
+
+    <!-- Uptime -->
+    <div class="tool" id="uptime">
+      <div>
+        <h2>Uptime Calculator</h2>
+        <div class="desc">Calculate allowed downtime for a given uptime percentage</div>
+      </div>
+      <div class="field">
+        <label>Uptime %</label>
+        <input id="uptime-pct" type="number" value="99.9" min="0" max="100" step="0.001" style="max-width:160px" />
+      </div>
+      <button class="run" onclick="run('uptime')">Calculate</button>
+      <div class="result" id="uptime-result"></div>
+    </div>
+
+    <!-- Dockerfile -->
+    <div class="tool" id="dockerfile">
+      <div>
+        <h2>Dockerfile Generator</h2>
+        <div class="desc">Generate a production-ready multi-stage Dockerfile</div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Runtime</label>
+          <select id="df-runtime">
+            <option value="node">Node.js</option>
+            <option value="python">Python</option>
+            <option value="go">Go</option>
+            <option value="rust">Rust</option>
+            <option value="java">Java</option>
+            <option value="static">Static (nginx)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Version (optional)</label>
+          <input id="df-version" placeholder="e.g. 20, 3.11, 1.22" />
+        </div>
+        <div class="field">
+          <label>Port</label>
+          <input id="df-port" value="3000" />
+        </div>
+      </div>
+      <div class="row">
+        <div class="field"><label>Install cmd (optional)</label><input id="df-install" placeholder="npm install" /></div>
+        <div class="field"><label>Build cmd (optional)</label><input id="df-build" placeholder="npm run build" /></div>
+      </div>
+      <div class="field"><label>Start cmd (optional)</label><input id="df-start" placeholder="node dist/index.js" /></div>
+      <button class="run" onclick="run('dockerfile')">Generate</button>
+      <div class="result" id="df-result"></div>
+    </div>
+
+    <!-- Timestamp -->
+    <div class="tool" id="timestamp">
+      <div>
+        <h2>Timestamp Converter</h2>
+        <div class="desc">Convert between Unix timestamp, ISO 8601, and human-readable formats</div>
+      </div>
+      <div class="field">
+        <label>Value — Unix seconds, Unix ms, or ISO string (leave blank for now)</label>
+        <input id="ts-input" placeholder="e.g. 1705315800  or  2024-01-15T10:30:00Z" />
+      </div>
+      <button class="run" onclick="run('timestamp')">Convert</button>
+      <div class="result" id="ts-result"></div>
     </div>
 
     <!-- PostgreSQL -->
@@ -407,18 +570,119 @@ paths:
       <div class="result" id="pg-result"></div>
     </div>
 
-    <!-- UUID -->
-    <div class="tool" id="uuid">
+    <!-- MySQL -->
+    <div class="tool" id="mysql">
       <div>
-        <h2>UUID Generator</h2>
-        <div class="desc">Generate v4 UUIDs via crypto.randomUUID()</div>
+        <h2>MySQL Connection String</h2>
+        <div class="desc">Build URL, JDBC, and DATABASE_URL formats</div>
+      </div>
+      <div class="row">
+        <div class="field"><label>Host</label><input id="mysql-host" value="localhost" /></div>
+        <div class="field"><label>Port</label><input id="mysql-port" value="3306" /></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>Database</label><input id="mysql-db" value="mydb" /></div>
+        <div class="field"><label>User</label><input id="mysql-user" value="root" /></div>
+      </div>
+      <div class="field"><label>Password</label><input id="mysql-pass" type="password" placeholder="optional" /></div>
+      <label class="checkbox-row">
+        <input type="checkbox" id="mysql-ssl" />
+        Enable SSL
+      </label>
+      <button class="run" onclick="run('mysql')">Build</button>
+      <div class="result" id="mysql-result"></div>
+    </div>
+
+    <!-- Hash -->
+    <div class="tool" id="hash">
+      <div>
+        <h2>Hash Generator</h2>
+        <div class="desc">Generate MD5, SHA-1, SHA-256, or SHA-512 hash of any string</div>
       </div>
       <div class="field">
-        <label>Count</label>
-        <input id="uuid-count" type="number" value="5" min="1" max="50" style="max-width:100px" />
+        <label>Algorithm</label>
+        <select id="hash-algo">
+          <option value="sha256">SHA-256</option>
+          <option value="sha512">SHA-512</option>
+          <option value="sha1">SHA-1</option>
+          <option value="md5">MD5</option>
+        </select>
       </div>
-      <button class="run" onclick="run('uuid')">Generate</button>
-      <div class="result" id="uuid-result"></div>
+      <div class="field">
+        <label>Input</label>
+        <textarea id="hash-input" style="min-height:60px">hello world</textarea>
+      </div>
+      <button class="run" onclick="run('hash')">Hash</button>
+      <div class="result" id="hash-result"></div>
+    </div>
+
+    <!-- JWT Decoder -->
+    <div class="tool" id="jwt">
+      <div>
+        <h2>JWT Decoder</h2>
+        <div class="desc">Decode a JWT header and payload (does not verify signature)</div>
+      </div>
+      <div class="field">
+        <label>JWT Token</label>
+        <textarea id="jwt-token" style="min-height:80px">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkFsaWNlIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c</textarea>
+      </div>
+      <button class="run" onclick="run('jwt')">Decode</button>
+      <div class="result" id="jwt-result"></div>
+    </div>
+
+    <!-- DNS CNAME -->
+    <div class="tool" id="dns-cname">
+      <div>
+        <h2>CNAME Lookup</h2>
+        <div class="desc">Look up the CNAME record for a hostname</div>
+      </div>
+      <div class="field">
+        <label>Hostname</label>
+        <input id="cname-host" value="www.github.com" />
+      </div>
+      <button class="run" onclick="run('dns-cname')">Lookup</button>
+      <div class="result" id="cname-result"></div>
+    </div>
+
+    <!-- DNS MX -->
+    <div class="tool" id="dns-mx">
+      <div>
+        <h2>MX Records</h2>
+        <div class="desc">Look up mail exchange (MX) records for a domain</div>
+      </div>
+      <div class="field">
+        <label>Domain</label>
+        <input id="mx-host" value="gmail.com" />
+      </div>
+      <button class="run" onclick="run('dns-mx')">Lookup</button>
+      <div class="result" id="mx-result"></div>
+    </div>
+
+    <!-- DNS Lookup -->
+    <div class="tool" id="dns-lookup">
+      <div>
+        <h2>DNS Lookup</h2>
+        <div class="desc">Look up any DNS record type for a hostname</div>
+      </div>
+      <div class="row">
+        <div class="field" style="flex:2">
+          <label>Hostname</label>
+          <input id="dns-host" value="google.com" />
+        </div>
+        <div class="field">
+          <label>Type</label>
+          <select id="dns-type">
+            <option value="A">A</option>
+            <option value="AAAA">AAAA</option>
+            <option value="TXT">TXT</option>
+            <option value="NS">NS</option>
+            <option value="CNAME">CNAME</option>
+            <option value="MX">MX</option>
+          </select>
+        </div>
+      </div>
+      <button class="run" onclick="run('dns-lookup')">Lookup</button>
+      <div class="result" id="dns-result"></div>
     </div>
 
   </main>
@@ -497,6 +761,22 @@ paths:
         showResult('ov-result', html);
         break;
       }
+      case 'json-validate': {
+        const d = await api('/api/json/validate', { input: document.getElementById('jv-input').value });
+        let html = validBadge(d.valid);
+        if (d.errors?.length) html += `<div class="result-label" style="margin-top:10px">Errors</div><pre>${d.errors.map(escHtml).join('\n')}</pre>`;
+        showResult('jv-result', html);
+        break;
+      }
+      case 'json-format': {
+        const d = await api('/api/json/format', {
+          input: document.getElementById('jf-input').value,
+          indent: document.getElementById('jf-indent').value,
+          sortKeys: document.getElementById('jf-sort-keys').checked.toString(),
+        });
+        showResult('jf-result', d.error ? `<div style="color:var(--red)">${escHtml(d.error)}</div>` : pre(d.output));
+        break;
+      }
       case 'base64-encode': {
         const d = await api('/api/base64/encode', { input: document.getElementById('b64-input').value });
         showResult('b64-result', pre(d.output));
@@ -522,9 +802,66 @@ paths:
         showResult('cron-result', d.error ? `<div style="color:var(--red)">${escHtml(d.error)}</div>` : pre(d.description));
         break;
       }
+      case 'regex': {
+        const d = await api('/api/regex/test', {
+          pattern: document.getElementById('regex-pattern').value,
+          flags: document.getElementById('regex-flags').value,
+          input: document.getElementById('regex-input').value,
+        });
+        if (d.error) {
+          showResult('regex-result', `<div style="color:var(--red)">${escHtml(d.error)}</div>`);
+        } else {
+          let html = `<div class="result-label">${d.matchCount} match${d.matchCount !== 1 ? 'es' : ''}</div>`;
+          if (d.matches?.length) {
+            html += `<pre>${d.matches.map(m => `[${m.index}] "${escHtml(m.match)}"${m.groups ? '\n  groups: ' + escHtml(JSON.stringify(m.groups)) : ''}`).join('\n')}</pre>`;
+          }
+          showResult('regex-result', html);
+        }
+        break;
+      }
       case 'robots-txt': {
         const d = await api('/api/robots-txt', { rules: document.getElementById('robots-rules').value, sitemapUrl: document.getElementById('robots-sitemap').value });
         showResult('robots-result', d.error ? `<div style="color:var(--red)">${escHtml(d.error)}</div>` : pre(d.output));
+        break;
+      }
+      case 'uuid': {
+        const d = await api('/api/uuid', { count: document.getElementById('uuid-count').value });
+        showResult('uuid-result', `<div class="result-label">UUIDs</div><pre>${d.uuids.map(escHtml).join('\n')}</pre>`);
+        break;
+      }
+      case 'uptime': {
+        const d = await api('/api/uptime', { percentage: document.getElementById('uptime-pct').value });
+        if (d.error) {
+          showResult('uptime-result', `<div style="color:var(--red)">${escHtml(d.error)}</div>`);
+        } else {
+          showResult('uptime-result',
+            `<div class="result-label">${escHtml(String(d.percentage))}% uptime</div>` +
+            `<pre>Per day:   ${escHtml(d.maxDowntimePerDay)}\nPer week:  ${escHtml(d.maxDowntimePerWeek)}\nPer month: ${escHtml(d.maxDowntimePerMonth)}\nPer year:  ${escHtml(d.maxDowntimePerYear)}</pre>`
+          );
+        }
+        break;
+      }
+      case 'dockerfile': {
+        const d = await api('/api/dockerfile', {
+          runtime: document.getElementById('df-runtime').value,
+          version: document.getElementById('df-version').value,
+          port: document.getElementById('df-port').value,
+          installCmd: document.getElementById('df-install').value,
+          buildCmd: document.getElementById('df-build').value,
+          startCmd: document.getElementById('df-start').value,
+        });
+        showResult('df-result', d.error ? `<div style="color:var(--red)">${escHtml(d.error)}</div>` : pre(d.output));
+        break;
+      }
+      case 'timestamp': {
+        const d = await api('/api/timestamp', { value: document.getElementById('ts-input').value });
+        if (d.error) {
+          showResult('ts-result', `<div style="color:var(--red)">${escHtml(d.error)}</div>`);
+        } else {
+          showResult('ts-result',
+            `<pre>Unix:     ${escHtml(String(d.unix))}\nUnix ms:  ${escHtml(String(d.unixMs))}\nISO:      ${escHtml(d.iso)}\nUTC:      ${escHtml(d.utc)}\nRelative: ${escHtml(d.relative)}</pre>`
+          );
+        }
         break;
       }
       case 'pg': {
@@ -543,9 +880,84 @@ paths:
         );
         break;
       }
-      case 'uuid': {
-        const d = await api('/api/uuid', { count: document.getElementById('uuid-count').value });
-        showResult('uuid-result', `<div class="result-label">UUIDs</div><pre>${d.uuids.map(escHtml).join('\n')}</pre>`);
+      case 'mysql': {
+        const d = await api('/api/mysql', {
+          host: document.getElementById('mysql-host').value,
+          port: document.getElementById('mysql-port').value,
+          database: document.getElementById('mysql-db').value,
+          user: document.getElementById('mysql-user').value,
+          password: document.getElementById('mysql-pass').value,
+          ssl: document.getElementById('mysql-ssl').checked.toString(),
+        });
+        showResult('mysql-result',
+          `<div class="result-label">URL</div><pre>${escHtml(d.url)}</pre>` +
+          `<div class="result-label" style="margin-top:10px">JDBC</div><pre>${escHtml(d.jdbc)}</pre>` +
+          `<div class="result-label" style="margin-top:10px">ENV</div><pre>${escHtml(d.env)}</pre>`
+        );
+        break;
+      }
+      case 'hash': {
+        const d = await api('/api/hash', {
+          input: document.getElementById('hash-input').value,
+          algorithm: document.getElementById('hash-algo').value,
+        });
+        if (d.error) {
+          showResult('hash-result', `<div style="color:var(--red)">${escHtml(d.error)}</div>`);
+        } else {
+          showResult('hash-result', `<div class="result-label">${escHtml(d.algorithm)}</div><pre style="word-break:break-all">${escHtml(d.hash)}</pre>`);
+        }
+        break;
+      }
+      case 'jwt': {
+        const d = await api('/api/jwt/decode', { token: document.getElementById('jwt-token').value });
+        if (d.error) {
+          showResult('jwt-result', `<div style="color:var(--red)">${escHtml(d.error)}</div>`);
+        } else {
+          let html = '';
+          if (d.isExpired !== undefined) {
+            html += d.isExpired
+              ? `<div class="badge-valid err"><span class="dot red"></span>Expired</div>`
+              : `<div class="badge-valid ok"><span class="dot green"></span>Not expired</div>`;
+          }
+          html += `<div class="result-label" style="margin-top:${d.isExpired !== undefined ? 10 : 0}px">Header</div><pre>${escHtml(JSON.stringify(d.header, null, 2))}</pre>`;
+          html += `<div class="result-label" style="margin-top:10px">Payload</div><pre>${escHtml(JSON.stringify(d.payload, null, 2))}</pre>`;
+          if (d.expiresAt) html += `<div class="result-label" style="margin-top:10px">Expires</div><pre>${escHtml(d.expiresAt)}</pre>`;
+          showResult('jwt-result', html);
+        }
+        break;
+      }
+      case 'dns-cname': {
+        const d = await api('/api/dns/cname', { hostname: document.getElementById('cname-host').value });
+        if (d.error && !d.cname) {
+          showResult('cname-result', `<div style="color:var(--red)">${escHtml(d.error)}</div>`);
+        } else {
+          showResult('cname-result', pre(d.cname ?? 'No CNAME record found'));
+        }
+        break;
+      }
+      case 'dns-mx': {
+        const d = await api('/api/dns/mx', { hostname: document.getElementById('mx-host').value });
+        if (d.error && (!d.records || d.records.length === 0)) {
+          showResult('mx-result', `<div style="color:var(--red)">${escHtml(d.error)}</div>`);
+        } else if (!d.records?.length) {
+          showResult('mx-result', pre('No MX records found'));
+        } else {
+          showResult('mx-result', `<div class="result-label">${d.records.length} record${d.records.length !== 1 ? 's' : ''}</div><pre>${d.records.map(r => `${r.priority}  ${escHtml(r.exchange)}`).join('\n')}</pre>`);
+        }
+        break;
+      }
+      case 'dns-lookup': {
+        const d = await api('/api/dns/lookup', {
+          hostname: document.getElementById('dns-host').value,
+          type: document.getElementById('dns-type').value,
+        });
+        if (d.error && (!d.records || d.records.length === 0)) {
+          showResult('dns-result', `<div style="color:var(--red)">${escHtml(d.error)}</div>`);
+        } else if (!d.records?.length) {
+          showResult('dns-result', pre(`No ${d.type} records found`));
+        } else {
+          showResult('dns-result', `<div class="result-label">${escHtml(d.type)} — ${d.records.length} record${d.records.length !== 1 ? 's' : ''}</div><pre>${d.records.map(escHtml).join('\n')}</pre>`);
+        }
         break;
       }
     }

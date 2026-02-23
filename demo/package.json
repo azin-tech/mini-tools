@@ -7,6 +7,6 @@
     "dev": "node server.mjs"
   },
   "dependencies": {
-    "@azin-tech/mini-tools": "^0.1.2"
+    "@azin-tech/mini-tools": "^0.2.0"
   }
 }
