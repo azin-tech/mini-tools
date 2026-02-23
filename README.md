@@ -4,9 +4,18 @@ Developer mini-tools for the terminal and web. Powers [azin.run/tools](https://a
 
 ## Installation
 
+> **Not yet published to npm.** Install directly from GitHub for now:
+
+```bash
+bun add github:azin-tech/mini-tools
+# or
+npm install github:azin-tech/mini-tools
+```
+
+Once published to npm:
+
 ```bash
 bun add @azin/mini-tools
-# or
 npm install @azin/mini-tools
 ```
 
