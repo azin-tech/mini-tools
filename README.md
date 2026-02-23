@@ -1,29 +1,22 @@
-# @azin/mini-tools
+# @azin-tech/mini-tools
 
 Developer mini-tools for the terminal and web. Powers [azin.run/tools](https://azin.run/tools).
 
 ## Installation
 
-> **Not yet published to npm.** Install directly from GitHub for now:
-
 ```bash
-bun add github:azin-tech/mini-tools
+bun add @azin-tech/mini-tools
 # or
-npm install github:azin-tech/mini-tools
-```
-
-Once published to npm:
-
-```bash
-bun add @azin/mini-tools
-npm install @azin/mini-tools
+npm install @azin-tech/mini-tools
 ```
 
 ## CLI Usage
 
 ```bash
 # Install globally
-bun install -g @azin/mini-tools
+bun install -g @azin-tech/mini-tools
+# or
+npm install -g @azin-tech/mini-tools
 
 # YAML
 mini-tools yaml validate "key: value"
@@ -98,7 +91,7 @@ import {
   buildPgConnectionString,
   // UUID
   generateUuid,
-} from "@azin/mini-tools"
+} from "@azin-tech/mini-tools"
 ```
 
 ### YAML Validator

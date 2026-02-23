@@ -194,9 +194,7 @@ Output (--json envelope):
 
 // ─── openapi ─────────────────────────────────────────────────────────────────
 
-const openapi = program
-  .command("openapi")
-  .description("OpenAPI / Swagger spec utilities");
+const openapi = program.command("openapi").description("OpenAPI / Swagger spec utilities");
 
 openapi
   .command("validate [input]")
@@ -304,9 +302,7 @@ Exit codes: 0 = success, 1 = invalid base64 input`
 
 // ─── cron ─────────────────────────────────────────────────────────────────────
 
-const cron = program
-  .command("cron")
-  .description("Cron expression generator and explainer.");
+const cron = program.command("cron").description("Cron expression generator and explainer.");
 
 cron
   .command("generate")
@@ -476,9 +472,7 @@ JSON output schema:
 
 program
   .command("pg")
-  .description(
-    "Build a PostgreSQL connection string in URL, JDBC, and DATABASE_URL= formats."
-  )
+  .description("Build a PostgreSQL connection string in URL, JDBC, and DATABASE_URL= formats.")
   .requiredOption("--host <host>", "database host")
   .requiredOption("--db <database>", "database name")
   .requiredOption("--user <user>", "database user")

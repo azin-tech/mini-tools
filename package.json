@@ -1,5 +1,5 @@
 {
-  "name": "@azin/mini-tools",
+  "name": "@azin-tech/mini-tools",
   "version": "0.1.0",
   "description": "Developer mini-tools: YAML, OpenAPI, Base64, Cron, Robots.txt, PostgreSQL, UUID",
   "license": "MIT",
@@ -14,9 +14,10 @@
     }
   },
   "bin": {
-    "mini-tools": "./dist/cli.cjs"
+    "mini-tools": "./bin/mini-tools"
   },
   "files": [
+    "bin",
     "dist",
     "README.md",
     "LICENSE"
@@ -49,10 +50,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/azin-run/mini-tools.git"
+    "url": "https://github.com/azin-tech/mini-tools.git"
   },
   "bugs": {
-    "url": "https://github.com/azin-run/mini-tools/issues"
+    "url": "https://github.com/azin-tech/mini-tools/issues"
   },
   "homepage": "https://azin.run/tools",
   "keywords": [
