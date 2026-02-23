@@ -29,7 +29,9 @@ export function testRegex(pattern: string, flags: string, input: string): RegexT
   // Reset lastIndex to make sure we start from the beginning.
   regex.lastIndex = 0;
 
-  while ((result = regex.exec(input)) !== null) {
+  for (;;) {
+    result = regex.exec(input);
+    if (result === null) break;
     matches.push({
       match: result[0],
       index: result.index,

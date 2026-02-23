@@ -2,12 +2,12 @@ import { Command } from "commander";
 import pkg from "../package.json" with { type: "json" };
 import { base64Decode, base64Encode } from "../src/base64/index.js";
 import { describeCron, generateCron } from "../src/cron-generator/index.js";
-import { dnsLookup, lookupCname, lookupMx } from "../src/dns-lookup/index.js";
 import type { DnsRecordType } from "../src/dns-lookup/index.js";
-import { generateDockerfile } from "../src/dockerfile-generator/index.js";
+import { dnsLookup, lookupCname, lookupMx } from "../src/dns-lookup/index.js";
 import type { DockerfileRuntime } from "../src/dockerfile-generator/index.js";
-import { generateHash } from "../src/hash-generator/index.js";
+import { generateDockerfile } from "../src/dockerfile-generator/index.js";
 import type { HashAlgorithm } from "../src/hash-generator/index.js";
+import { generateHash } from "../src/hash-generator/index.js";
 import { formatJson } from "../src/json/formatter/index.js";
 import { validateJson } from "../src/json/validator/index.js";
 import { decodeJwt } from "../src/jwt-decoder/index.js";
@@ -623,10 +623,7 @@ Exit codes: 0 = success, 1 = invalid percentage`
 program
   .command("dockerfile")
   .description("Generate a production-ready Dockerfile.")
-  .requiredOption(
-    "--runtime <runtime>",
-    "runtime: node | python | go | rust | java | static"
-  )
+  .requiredOption("--runtime <runtime>", "runtime: node | python | go | rust | java | static")
   .option("--version <version>", "runtime version (e.g. 20, 3.11, 1.22)")
   .option("--port <port>", "exposed port (default: 3000)")
   .option("--workdir <dir>", "working directory (default: /app)")
@@ -677,9 +674,7 @@ const jwtCmd = program.command("jwt").description("JSON Web Token utilities.");
 
 jwtCmd
   .command("decode <token>")
-  .description(
-    "Decode a JWT header and payload. Does NOT verify the signature."
-  )
+  .description("Decode a JWT header and payload. Does NOT verify the signature.")
   .option("--json", "output JSON")
   .addHelpText(
     "after",
