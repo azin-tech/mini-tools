@@ -1,6 +1,6 @@
 {
   "name": "@azin-tech/mini-tools",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Developer mini-tools: YAML, OpenAPI, Base64, Cron, Robots.txt, PostgreSQL, UUID",
   "license": "MIT",
   "type": "module",
@@ -14,7 +14,7 @@
     }
   },
   "bin": {
-    "mini-tools": "./bin/mini-tools"
+    "mini-tools": "./bin/mini-tools.js"
   },
   "files": [
     "bin",
