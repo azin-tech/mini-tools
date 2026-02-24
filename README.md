@@ -1,4 +1,4 @@
-# <img src="icon.svg" width="32" height="32" alt="" /> @azin-tech/mini-tools
+# <img src="icon.png" width="32" height="32" alt="" /> @azin-tech/mini-tools
 
 Developer mini-tools for the terminal and web. Powers [azin.run/tools](https://azin.run/tools).
 
