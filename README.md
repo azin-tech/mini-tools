@@ -1,6 +1,6 @@
 # <img src="icon.png" width="32" height="32" alt="" /> @azin-tech/mini-tools
 
-Developer mini-tools for the terminal and web. Powers [azin.run/tools](https://azin.run/tools).
+Developer mini-tools for the terminal and web. These tools are also available as a web app at [azin.run/tools](https://azin.run/tools).
 
 ## Installation
 
