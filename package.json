@@ -1,6 +1,6 @@
 {
   "name": "@azin-tech/mini-tools",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Developer mini-tools: YAML, OpenAPI, JSON, Base64, Cron, Regex, Robots.txt, PostgreSQL, MySQL, UUID, Uptime, Dockerfile, JWT, Hash, Timestamp, DNS",
   "license": "MIT",
   "type": "module",
